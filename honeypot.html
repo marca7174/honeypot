@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CorpNet — Secure Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0f1f3d;--navy2:#162847;
+  --blue:#2563eb;--blue2:#1d4ed8;--blue-light:#eff6ff;
+  --bg:#f1f3f7;--surface:#ffffff;
+  --border:#e2e6ed;--border2:#d0d5de;
+  --text:#111827;--text2:#4b5563;--text3:#9ca3af;
+  --green:#16a34a;--red:#dc2626;--amber:#d97706;
+  --green-bg:#f0fdf4;--red-bg:#fef2f2;--amber-bg:#fffbeb;
+  --sidebar-w:248px;
+  --r:10px;--r2:14px;
+}
+html{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+body{min-height:100vh}
+
+/* ─── Page router ─────────────────────────────────── */
+.page{display:none!important}
+.page.on{display:flex!important}
+#pg-login.on{align-items:center;justify-content:center;min-height:100vh;flex-direction:column}
+#pg-dash.on{flex-direction:row;min-height:100vh}
+#pg-decoy.on{align-items:center;justify-content:center;min-height:100vh}
+#pg-banned.on{align-items:center;justify-content:center;min-height:100vh;background:#0c0c0e}
+
+/* ─── Login ───────────────────────────────────────── */
+#pg-login{position:relative;overflow:hidden;background:var(--bg)}
+#pg-login::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 70% 60% at 20% 0%,rgba(37,99,235,.07),transparent 55%),
+             radial-gradient(ellipse 60% 70% at 80% 100%,rgba(15,31,61,.055),transparent 55%);
+  pointer-events:none}
+.login-grid{position:absolute;inset:0;
+  background-image:linear-gradient(rgba(15,31,61,.032) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(15,31,61,.032) 1px,transparent 1px);
+  background-size:42px 42px;pointer-events:none}
+.login-box{position:relative;z-index:5;width:100%;max-width:420px;padding:0 20px}
+.login-brand{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:34px}
+.brand-icon{width:44px;height:44px;border-radius:12px;background:var(--navy);
+  display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.brand-icon::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.13),transparent 55%)}
+.brand-icon svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:1.8;position:relative;z-index:1}
+.brand-name{font-size:24px;font-weight:700;color:var(--navy);letter-spacing:-.03em}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);
+  padding:38px 34px;box-shadow:0 2px 8px rgba(0,0,0,.04),0 10px 36px rgba(0,0,0,.06)}
+.lc-title{font-size:21px;font-weight:700;color:var(--text);letter-spacing:-.03em;margin-bottom:5px}
+.lc-sub{font-size:13.5px;color:var(--text2);margin-bottom:26px}
+.lc-hr{height:1px;background:var(--border);margin-bottom:24px}
+.field{margin-bottom:18px}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px}
+.field input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--r);
+  font-family:inherit;font-size:14px;color:var(--text);background:#fafbfc;
+  outline:none;transition:border-color .2s,box-shadow .2s,background .15s}
+.field input:focus{border-color:var(--blue);background:var(--surface);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.field input::placeholder{color:var(--text3)}
+.login-err{background:var(--red-bg);border:1px solid #fecaca;color:#991b1b;
+  border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:18px;display:none}
+.btn-navy{width:100%;padding:12.5px;background:var(--navy);color:#fff;border:none;
+  border-radius:var(--r);font-family:inherit;font-size:15px;font-weight:600;
+  cursor:pointer;letter-spacing:-.01em;transition:background .2s,transform .1s;
+  position:relative;overflow:hidden}
+.btn-navy::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.09),transparent 55%)}
+.btn-navy:hover{background:var(--navy2)}
+.btn-navy:active{transform:scale(.99)}
+.btn-navy:disabled{opacity:.7;cursor:not-allowed}
+.login-foot{text-align:center;margin-top:18px;font-size:13px;color:var(--text3)}
+.login-foot a{color:var(--blue);text-decoration:none}
+.login-secure{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:20px;font-size:11.5px;color:#9ca3af}
+.login-secure svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2}
+
+/* ─── Dashboard ───────────────────────────────────── */
+.sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--navy);
+  display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0}
+.sb-brand{padding:20px 18px 16px;display:flex;align-items:center;gap:11px;
+  border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-logo{width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.1);
+  display:flex;align-items:center;justify-content:center}
+.sb-logo svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2}
+.sb-name{font-size:15.5px;font-weight:700;color:#fff;letter-spacing:-.02em}
+.sb-sec{padding:14px 16px 4px;font-size:9.5px;font-weight:700;
+  color:rgba(255,255,255,.28);text-transform:uppercase;letter-spacing:.12em}
+.nav-a{display:flex;align-items:center;gap:10px;padding:9px 12px;margin:1px 8px;
+  border-radius:8px;color:rgba(255,255,255,.6);font-size:13.5px;font-weight:450;
+  cursor:pointer;text-decoration:none;transition:.15s;user-select:none}
+.nav-a:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.9)}
+.nav-a.on{background:rgba(255,255,255,.13);color:#fff}
+.nav-a svg{width:15px;height:15px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2}
+.sb-foot{margin-top:auto;padding:14px 12px;border-top:1px solid rgba(255,255,255,.08)}
+.user-chip{display:flex;align-items:center;gap:10px;padding:9px 11px;
+  border-radius:8px;background:rgba(255,255,255,.06)}
+.av{width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,#3b82f6,#1d4ed8);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.user-name{font-size:13px;font-weight:600;color:#fff}
+.user-role{font-size:11px;color:rgba(255,255,255,.4)}
+
+.dash-main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)}
+.topbar{height:56px;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 28px;gap:14px;
+  position:sticky;top:0;z-index:100}
+.tb-title{font-size:16px;font-weight:600;color:var(--text);margin-right:auto}
+.tb-search{display:flex;align-items:center;gap:8px;background:var(--bg);
+  border:1px solid var(--border);border-radius:8px;padding:0 12px;height:34px}
+.tb-search input{border:none;background:transparent;font-family:inherit;
+  font-size:13px;color:var(--text);outline:none;width:160px}
+.tb-search svg{width:14px;height:14px;fill:none;stroke:var(--text3);stroke-width:2;flex-shrink:0}
+.icon-btn{width:34px;height:34px;border-radius:8px;background:var(--bg);
+  border:1px solid var(--border);display:flex;align-items:center;
+  justify-content:center;cursor:pointer;position:relative;transition:.15s}
+.icon-btn:hover{background:var(--border)}
+.icon-btn svg{width:16px;height:16px;fill:none;stroke:var(--text2);stroke-width:2}
+.icon-btn .dot{position:absolute;top:6px;right:6px;width:7px;height:7px;
+  border-radius:50%;background:#ef4444;border:1.5px solid var(--surface)}
+.tb-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#1d4ed8);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;cursor:pointer}
+
+.content{padding:28px;flex:1}
+.pg-header{margin-bottom:24px}
+.pg-header h1{font-size:23px;font-weight:800;color:var(--text);letter-spacing:-.03em;margin-bottom:4px}
+.pg-header p{font-size:13.5px;color:var(--text2)}
+
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:18px 20px;position:relative;overflow:hidden}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--blue)}
+.stat.g::before{background:#22c55e}.stat.r::before{background:#ef4444}.stat.y::before{background:#f59e0b}
+.stat-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
+.stat-val{font-size:30px;font-weight:800;color:var(--text);letter-spacing:-.04em;margin-bottom:4px}
+.stat-hint{font-size:12px;color:var(--text3)}.stat-hint.up{color:#22c55e}.stat-hint.dn{color:#ef4444}
+
+.two-col{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.card-hd{padding:14px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:14px;font-weight:600;color:var(--text)}
+.live-pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--blue-light);color:var(--blue)}
+.card-body{padding:18px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;font-weight:700;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.05em;padding:0 12px 10px;border-bottom:1px solid var(--border)}
+td{padding:10px 12px;font-size:13px;color:var(--text);border-bottom:1px solid #f1f3f6}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafbfc}
+.tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.tag.g{background:#dcfce7;color:#15803d}.tag.y{background:#fef9c3;color:#a16207}
+.tag.b{background:#dbeafe;color:#1d4ed8}.tag.r{background:#fee2e2;color:#991b1b}
+.tag.gray{background:#f3f4f6;color:#4b5563}
+.feed-row{display:flex;align-items:flex-start;gap:11px;padding:10px 0;border-bottom:1px solid #f1f3f6}
+.feed-row:last-child{border-bottom:none}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--blue);margin-top:4px;flex-shrink:0}
+.feed-txt{font-size:13px;color:var(--text);line-height:1.5}
+.feed-sub{font-size:11.5px;color:var(--text3);margin-top:2px}
+
+/* ─── Chatbot ─────────────────────────────────────── */
+.chat-btn{position:fixed;bottom:28px;right:28px;width:56px;height:56px;border-radius:50%;
+  background:linear-gradient(135deg,var(--blue),var(--blue2));
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;z-index:500;border:none;box-shadow:0 4px 18px rgba(37,99,235,.42);
+  transition:transform .2s,box-shadow .2s}
+.chat-btn:hover{transform:scale(1.07);box-shadow:0 6px 28px rgba(37,99,235,.52)}
+.chat-btn svg{width:25px;height:25px;fill:none;stroke:#fff;stroke-width:2}
+.chat-online{position:absolute;top:-1px;right:-1px;width:15px;height:15px;
+  border-radius:50%;background:#22c55e;border:2.5px solid var(--bg)}
+.chat-online::after{content:'';position:absolute;inset:-4px;border-radius:50%;
+  background:rgba(34,197,94,.35);animation:ring 2s ease-out infinite}
+@keyframes ring{0%{transform:scale(1);opacity:.8}100%{transform:scale(2);opacity:0}}
+.chat-win{position:fixed;bottom:96px;right:28px;width:370px;background:var(--surface);
+  border-radius:16px;box-shadow:0 10px 48px rgba(0,0,0,.14),0 2px 8px rgba(0,0,0,.07);
+  z-index:500;display:none;flex-direction:column;overflow:hidden;border:1px solid var(--border)}
+.chat-win.open{display:flex;animation:chat-pop .2s ease}
+@keyframes chat-pop{from{opacity:0;transform:scale(.93) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.chat-head{padding:14px 16px;background:linear-gradient(135deg,var(--navy),#193158);
+  display:flex;align-items:center;gap:12px}
+.chat-av{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.15);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.chat-av svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2}
+.chat-name{font-size:14px;font-weight:600;color:#fff}
+.chat-status{font-size:11.5px;color:rgba(255,255,255,.65);display:flex;align-items:center;gap:5px;margin-top:1px}
+.chat-status::before{content:'';width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0}
+.chat-x{margin-left:auto;background:rgba(255,255,255,.13);border:none;border-radius:6px;
+  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:#fff;font-size:20px;line-height:1;transition:.15s}
+.chat-x:hover{background:rgba(255,255,255,.25)}
+.chat-msgs{flex:1;padding:14px;overflow-y:auto;max-height:320px;
+  display:flex;flex-direction:column;gap:10px;background:#f8f9fb}
+.chat-msgs::-webkit-scrollbar{width:3px}
+.chat-msgs::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:2px}
+.msg{max-width:83%;padding:9px 13px;border-radius:12px;font-size:13.5px;line-height:1.55;word-break:break-word}
+.msg.bot{background:var(--surface);border:1px solid var(--border);color:var(--text);
+  border-radius:4px 12px 12px 12px;align-self:flex-start;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.msg.user{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;
+  border-radius:12px 12px 4px 12px;align-self:flex-end}
+.typing{background:var(--surface);border:1px solid var(--border);padding:11px 14px;
+  border-radius:4px 12px 12px 12px;align-self:flex-start}
+.dots{display:flex;gap:4px;align-items:center}
+.dots span{width:7px;height:7px;border-radius:50%;background:#9ca3af;animation:bounce 1.2s ease-in-out infinite}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-5px);opacity:1}}
+.chat-row{padding:12px 14px;border-top:1px solid var(--border);display:flex;gap:9px;align-items:center;background:var(--surface)}
+.chat-input{flex:1;padding:9px 14px;border:1.5px solid var(--border);border-radius:22px;
+  font-family:inherit;font-size:13.5px;color:var(--text);outline:none;transition:border-color .2s}
+.chat-input:focus{border-color:var(--blue)}
+.send-btn{width:37px;height:37px;border-radius:50%;background:var(--blue);border:none;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;flex-shrink:0}
+.send-btn:hover{background:var(--blue2)}
+.send-btn svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:2.5}
+.chat-foot{padding:7px 14px;font-size:10.5px;color:#9ca3af;text-align:center;border-top:1px solid #f1f3f6;background:var(--surface)}
+
+/* ─── Decoy ───────────────────────────────────────── */
+#pg-decoy{background:var(--bg)}
+.decoy-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);
+  padding:56px 44px;text-align:center;max-width:380px;width:90%;
+  box-shadow:0 2px 8px rgba(0,0,0,.04),0 10px 36px rgba(0,0,0,.07)}
+.spin{width:48px;height:48px;border-radius:50%;border:3px solid var(--border2);
+  border-top-color:var(--blue);animation:spin .75s linear infinite;margin:0 auto 22px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.decoy-h{font-size:17px;font-weight:600;color:var(--text);margin-bottom:7px}
+.decoy-p{font-size:13.5px;color:var(--text2);line-height:1.65}
+.shimmer{width:100%;height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin:18px 0 14px}
+.shimmer-fill{width:45%;height:100%;border-radius:2px;
+  background:linear-gradient(90deg,var(--blue),#93c5fd,var(--blue));
+  background-size:200% 100%;animation:shim 1.8s ease-in-out infinite}
+@keyframes shim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.decoy-note{font-size:12px;color:var(--text3);margin-bottom:20px}
+.back-a{font-size:13px;color:var(--blue);text-decoration:none}
+.back-a:hover{text-decoration:underline}
+
+/* ─── Banned ──────────────────────────────────────── */
+.banned-card{background:#161618;border:1px solid #27272a;border-top:3px solid #dc2626;
+  border-radius:var(--r2);padding:52px 44px;text-align:center;max-width:440px;width:90%}
+.banned-icon{width:62px;height:62px;border-radius:50%;background:rgba(220,38,38,.1);
+  border:2px solid rgba(220,38,38,.22);display:flex;align-items:center;
+  justify-content:center;margin:0 auto 22px;font-size:26px}
+.banned-h{font-size:22px;font-weight:700;color:#fff;margin-bottom:10px;letter-spacing:-.02em}
+.banned-p{font-size:13.5px;color:#6b7280;line-height:1.75;margin-bottom:6px}
+.banned-p strong{color:#ef4444}
+.banned-contact{font-size:13px;color:#52525b;margin-top:10px}
+.banned-contact a{color:#3b82f6;text-decoration:none}
+.banned-ref{font-size:11px;color:#27272a;margin-top:22px;font-family:monospace;letter-spacing:.05em}
+
+/* ─── Toast ───────────────────────────────────────── */
+.toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-10px);
+  padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;
+  z-index:9999;opacity:0;pointer-events:none;transition:.25s;
+  box-shadow:0 4px 20px rgba(0,0,0,.18)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.ok{background:#166534;color:#fff}
+.toast.err{background:#991b1b;color:#fff}
+.toast.info{background:var(--navy);color:#fff}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ═══════════════════════════════════ -->
+<div id="pg-login" class="page on">
+  <div class="login-grid"></div>
+  <div class="login-box">
+    <div class="login-brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 7v10M7.5 9.5l4.5 2.5 4.5-2.5"/></svg>
+      </div>
+      <span class="brand-name">CorpNet</span>
+    </div>
+    <div class="login-card">
+      <div class="lc-title">Welcome back</div>
+      <div class="lc-sub">Sign in with your corporate credentials to continue.</div>
+      <div class="lc-hr"></div>
+      <div class="login-err" id="login-err"></div>
+      <div class="field">
+        <label>Username</label>
+        <input id="u" type="text" placeholder="firstname.lastname" autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input id="p" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn-navy" id="login-btn" onclick="doLogin()">
+        <span id="btn-txt">Sign In →</span>
+      </button>
+    </div>
+    <div class="login-foot">Having trouble? <a href="#">Contact IT Support</a> &nbsp;·&nbsp; ext. 4400</div>
+    <div class="login-secure">
+      <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Secured with TLS 1.3 &nbsp;·&nbsp; ISO 27001 Certified
+    </div>
+  </div>
+</div>
+
+<!-- ══ DASHBOARD ════════════════════════════════ -->
+<div id="pg-dash" class="page">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 7v10M7.5 9.5l4.5 2.5 4.5-2.5"/></svg></div>
+      <span class="sb-name">CorpNet</span>
+    </div>
+    <div class="sb-sec">Main</div>
+    <a class="nav-a on" href="#" onclick="mainView();return false">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a>
+    <a class="nav-a" href="#" onclick="decoy('Loading Q4 Financial Reports…','rep');return false">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Reports</a>
+    <a class="nav-a" href="#" onclick="decoy('Loading Employee Directory…','emp');return false">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Employees</a>
+    <a class="nav-a" href="#" onclick="decoy('Loading Finance Module…','fin');return false">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Finance</a>
+    <a class="nav-a" href="#" onclick="decoy('Loading Analytics…','ana');return false">
+      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Analytics</a>
+    <div class="sb-sec">Manage</div>
+    <a class="nav-a" href="#" onclick="decoy('Verifying Administrative Privileges…','adm');return false">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>Administration</a>
+    <a class="nav-a" href="#" onclick="decoy('Loading System Settings…','set');return false">
+      <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</a>
+    <div class="sb-foot">
+      <div class="user-chip">
+        <div class="av" id="sb-av">U</div>
+        <div><div class="user-name" id="sb-name">User</div><div class="user-role">Corporate Employee</div></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main column -->
+  <div class="dash-main">
+    <div class="topbar">
+      <span class="tb-title" id="tb-title">Dashboard Overview</span>
+      <div class="tb-search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Search resources…">
+      </div>
+      <div class="icon-btn"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="dot"></div></div>
+      <div class="icon-btn"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+      <div class="tb-av" id="tb-av">U</div>
+    </div>
+
+    <div class="content" id="main-view">
+      <div class="pg-header">
+        <h1 id="greeting">Good morning 👋</h1>
+        <p>Here's what's happening across the organization today.</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat"><div class="stat-label">Active Projects</div><div class="stat-val">24</div><div class="stat-hint up">↑ 3 this week</div></div>
+        <div class="stat g"><div class="stat-label">Tasks Completed</div><div class="stat-val">187</div><div class="stat-hint up">↑ 12% vs last month</div></div>
+        <div class="stat y"><div class="stat-label">Pending Reviews</div><div class="stat-val">9</div><div class="stat-hint">Requires attention</div></div>
+        <div class="stat r"><div class="stat-label">Open Incidents</div><div class="stat-val">2</div><div class="stat-hint dn">↑ 1 new today</div></div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-hd"><span class="card-title">Recent Activity</span><span class="live-pill">Live</span></div>
+          <table>
+            <thead><tr><th>User</th><th>Action</th><th>Module</th><th>Status</th><th>Time</th></tr></thead>
+            <tbody>
+              <tr><td>S. Johnson</td><td>Submitted Q4 report</td><td>Finance</td><td><span class="tag g">Done</span></td><td>2m ago</td></tr>
+              <tr><td>M. Patel</td><td>Access request</td><td>HR Portal</td><td><span class="tag y">Pending</span></td><td>8m ago</td></tr>
+              <tr><td>R. Thompson</td><td>Updated policy doc</td><td>Compliance</td><td><span class="tag b">Synced</span></td><td>15m ago</td></tr>
+              <tr><td>A. Williams</td><td>Opened ticket #4421</td><td>IT Support</td><td><span class="tag y">Open</span></td><td>32m ago</td></tr>
+              <tr><td>C. Davis</td><td>Resolved incident</td><td>Security</td><td><span class="tag g">Resolved</span></td><td>1h ago</td></tr>
+              <tr><td>T. Martinez</td><td>Data export</td><td>Analytics</td><td><span class="tag b">Complete</span></td><td>2h ago</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">System Health</span></div>
+          <div class="card-body">
+            <div class="feed-row"><div class="dot" style="background:#22c55e"></div><div><div class="feed-txt">All services operational</div><div class="feed-sub">Uptime: 99.97% — 14 services</div></div></div>
+            <div class="feed-row"><div class="dot" style="background:#3b82f6"></div><div><div class="feed-txt">Daily backup completed</div><div class="feed-sub">4:00 AM — all systems archived</div></div></div>
+            <div class="feed-row"><div class="dot" style="background:#f59e0b"></div><div><div class="feed-txt">Certificate renewal upcoming</div><div class="feed-sub">Expires in 18 days</div></div></div>
+            <div class="feed-row"><div class="dot" style="background:#22c55e"></div><div><div class="feed-txt">Security scan passed</div><div class="feed-sub">Last scan: today 06:00</div></div></div>
+            <div class="feed-row"><div class="dot" style="background:#3b82f6"></div><div><div class="feed-txt">3 packages updated</div><div class="feed-sub">No restart required</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-hd"><span class="card-title">My Tasks</span><span class="live-pill">9 pending</span></div>
+          <table>
+            <thead><tr><th>Task</th><th>Priority</th><th>Due</th><th>Owner</th></tr></thead>
+            <tbody>
+              <tr><td>Q4 Budget Review</td><td><span class="tag r">High</span></td><td>Today</td><td>Self</td></tr>
+              <tr><td>Onboard T. Martinez</td><td><span class="tag y">Medium</span></td><td>Fri</td><td>HR Team</td></tr>
+              <tr><td>Update DR runbook</td><td><span class="tag y">Medium</span></td><td>Next week</td><td>Self</td></tr>
+              <tr><td>Vendor contract renewal</td><td><span class="tag gray">Low</span></td><td>EOM</td><td>Legal</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">Upcoming</span></div>
+          <div class="card-body">
+            <div class="feed-row"><div class="dot" style="background:#a855f7"></div><div><div class="feed-txt">All-hands meeting</div><div class="feed-sub">Today at 3:00 PM</div></div></div>
+            <div class="feed-row"><div class="dot" style="background:#3b82f6"></div><div><div class="feed-txt">Sprint planning</div><div class="feed-sub">Tomorrow 10:00 AM</div></div></div>
+            <div class="feed-row"><div class="dot" style="background:#22c55e"></div><div><div class="feed-txt">Compliance training</div><div class="feed-sub">Thu 2:00 PM (mandatory)</div></div></div>
+            <div class="feed-row"><div class="dot" style="background:#f59e0b"></div><div><div class="feed-txt">Quarterly review</div><div class="feed-sub">Fri 11:00 AM</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /main-view -->
+
+  </div><!-- /dash-main -->
+
+  <!-- CHATBOT WIDGET -->
+  <button class="chat-btn" id="chat-fab" onclick="toggleChat()">
+    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <div class="chat-online"></div>
+  </button>
+  <div class="chat-win" id="chat-win">
+    <div class="chat-head">
+      <div class="chat-av"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg></div>
+      <div>
+        <div class="chat-name">CorpAssist AI</div>
+        <div class="chat-status">Online &nbsp;·&nbsp; Secure channel</div>
+      </div>
+      <button class="chat-x" onclick="toggleChat()">×</button>
+    </div>
+    <div class="chat-msgs" id="chat-msgs">
+      <div class="msg bot" id="chat-welcome">Hi! I'm CorpAssist, your AI assistant. How can I help you today?</div>
+    </div>
+    <div class="chat-row">
+      <input class="chat-input" id="chat-in" type="text" placeholder="Type a message…"
+        autocomplete="off" onkeydown="if(event.key==='Enter')sendChat()">
+      <button class="send-btn" onclick="sendChat()">
+        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+    <div class="chat-foot">Powered by CorpNet AI</div>
+  </div>
+
+</div><!-- /pg-dash -->
+
+<!-- ══ DECOY ═════════════════════════════════════ -->
+<div id="pg-decoy" class="page">
+  <div class="decoy-card">
+    <div class="spin"></div>
+    <div class="decoy-h" id="decoy-h">Loading…</div>
+    <div class="decoy-p" id="decoy-p">Fetching your data securely. Please wait.</div>
+    <div class="shimmer"><div class="shimmer-fill"></div></div>
+    <div class="decoy-note">Please do not refresh this page.</div>
+    <a class="back-a" href="#" onclick="mainView();return false">← Back to Dashboard</a>
+  </div>
+</div>
+
+<!-- ══ BANNED ════════════════════════════════════ -->
+<div id="pg-banned" class="page">
+  <div class="banned-card">
+    <div class="banned-icon">⛔</div>
+    <div class="banned-h">Access Temporarily Suspended</div>
+    <div class="banned-p">Unusual activity was detected from your connection.<br>Your access has been restricted for 1 hour.</div>
+    <div class="banned-p" id="banned-score">Risk score: <strong>—</strong></div>
+    <div class="banned-contact">Contact security: <a href="mailto:security@corpnet.local">security@corpnet.local</a></div>
+    <div class="banned-ref" id="banned-ref">—</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://127.0.0.1:8000';
+let chatOpen = false, currentUser = '';
+
+/* ── utils ────────────────────────────────────── */
+function go(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+  document.getElementById('pg-' + id).classList.add('on');
+}
+function toast(msg, type = 'info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast show ${type}`;
+  setTimeout(() => t.classList.remove('show'), 3400);
+}
+function hour() {
+  const h = new Date().getHours();
+  return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+}
+
+/* ── login ────────────────────────────────────── */
+document.getElementById('u').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('p').focus(); });
+document.getElementById('p').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+async function doLogin() {
+  const username = document.getElementById('u').value.trim();
+  const password = document.getElementById('p').value;
+  const errEl = document.getElementById('login-err');
+  const btn = document.getElementById('login-btn');
+  const txt = document.getElementById('btn-txt');
+
+  errEl.style.display = 'none';
+  if (!username || !password) {
+    errEl.textContent = 'Please enter your username and password.';
+    errEl.style.display = 'block'; return;
+  }
+
+  btn.disabled = true; txt.textContent = 'Signing in…';
+
+  try {
+    const res = await fetch(API + '/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+      credentials: 'include',
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      enterDash(username);
+    } else if (data.banned) {
+      showBanned(data.score || 100);
+    } else {
+      errEl.textContent = 'Incorrect username or password. Please try again.';
+      errEl.style.display = 'block';
+      document.getElementById('p').value = '';
+      document.getElementById('p').focus();
+    }
+  } catch {
+    /* backend offline — show error, don't silently pass */
+    errEl.textContent = 'Unable to connect to the server. Please try again.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; txt.textContent = 'Sign In →';
+  }
+}
+
+/* ── dashboard entry ──────────────────────────── */
+function enterDash(username) {
+  currentUser = username;
+  const first = username.includes('.') ? username.split('.')[0] : username;
+  const name = first.charAt(0).toUpperCase() + first.slice(1);
+  const init = name.charAt(0);
+
+  document.getElementById('sb-av').textContent = init;
+  document.getElementById('sb-name').textContent = name;
+  document.getElementById('tb-av').textContent = init;
+  document.getElementById('greeting').textContent = `${hour()}, ${name} 👋`;
+  document.getElementById('chat-welcome').textContent =
+    `Hi ${name}! I'm CorpAssist, your AI assistant. How can I help?`;
+
+  /* reset chat history */
+  const msgs = document.getElementById('chat-msgs');
+  while (msgs.children.length > 1) msgs.removeChild(msgs.lastChild);
+
+  go('dash');
+  mainView();
+}
+
+/* ── nav ──────────────────────────────────────── */
+function mainView() {
+  document.getElementById('tb-title').textContent = 'Dashboard Overview';
+  document.querySelectorAll('.nav-a').forEach(a => a.classList.remove('on'));
+  document.querySelectorAll('.nav-a')[0].classList.add('on');
+  document.getElementById('main-view').style.display = '';
+  go('dash');
+}
+
+const decoyText = {
+  rep: ['Fetching quarterly financial data…', 'Applying access controls…', 'Compiling reports…'],
+  emp: ['Loading personnel directory…', 'Checking permissions…', 'Syncing records…'],
+  fin: ['Connecting to finance module…', 'Verifying clearance level…'],
+  ana: ['Preparing analytics dashboard…', 'Aggregating metrics…'],
+  adm: ['Verifying administrative privileges…', 'Checking credentials…', 'Please wait…'],
+  set: ['Loading system preferences…', 'Checking configuration…'],
+};
+let _decoyTimer = null;
+function decoy(title, key) {
+  document.querySelectorAll('.nav-a').forEach(a => a.classList.remove('on'));
+  if (event?.target?.closest('.nav-a')) event.target.closest('.nav-a').classList.add('on');
+  const msgs = decoyText[key] || ['Loading…'];
+  document.getElementById('decoy-h').textContent = title;
+  document.getElementById('decoy-p').textContent = msgs[0];
+  clearInterval(_decoyTimer);
+  let i = 0;
+  _decoyTimer = setInterval(() => {
+    i = (i + 1) % msgs.length;
+    document.getElementById('decoy-p').textContent = msgs[i];
+  }, 2000);
+  /* log the access to backend */
+  const pathMap = { rep: '/reports', emp: '/employees', adm: '/admin', fin: '/reports/quarterly' };
+  if (pathMap[key]) fetch(API + pathMap[key], { credentials: 'include' }).catch(() => {});
+  go('decoy');
+}
+
+/* ── banned ───────────────────────────────────── */
+function showBanned(score) {
+  document.getElementById('banned-score').innerHTML = `Risk score: <strong>${score}</strong>`;
+  document.getElementById('banned-ref').textContent =
+    `Incident ref: #DM${String(Math.abs(Math.floor(Math.random() * 999999))).padStart(6, '0')}`;
+  go('banned');
+}
+
+/* ── chatbot ──────────────────────────────────── */
+function toggleChat() {
+  chatOpen = !chatOpen;
+  document.getElementById('chat-win').classList.toggle('open', chatOpen);
+  if (chatOpen) document.getElementById('chat-in').focus();
+}
+document.addEventListener('click', e => {
+  const win = document.getElementById('chat-win');
+  const fab = document.getElementById('chat-fab');
+  if (chatOpen && !win.contains(e.target) && !fab.contains(e.target)) {
+    chatOpen = false; win.classList.remove('open');
+  }
+});
+function addMsg(text, who) {
+  const msgs = document.getElementById('chat-msgs');
+  const d = document.createElement('div');
+  d.className = 'msg ' + who; d.textContent = text;
+  msgs.appendChild(d); msgs.scrollTop = msgs.scrollHeight; return d;
+}
+function showTyping() {
+  const msgs = document.getElementById('chat-msgs');
+  const d = document.createElement('div'); d.className = 'typing'; d.id = 'typing';
+  d.innerHTML = '<div class="dots"><span></span><span></span><span></span></div>';
+  msgs.appendChild(d); msgs.scrollTop = msgs.scrollHeight;
+}
+function removeTyping() { document.getElementById('typing')?.remove(); }
+
+async function sendChat() {
+  const inp = document.getElementById('chat-in');
+  const text = inp.value.trim(); if (!text) return;
+  inp.value = ''; addMsg(text, 'user'); showTyping();
+  try {
+    const res = await fetch(API + '/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text }),
+      credentials: 'include',
+    });
+    const data = await res.json();
+    await new Promise(r => setTimeout(r, 280 + Math.random() * 380));
+    removeTyping(); addMsg(data.reply, 'bot');
+    if (data.verified && data.url) {
+      toast('Verification successful — redirecting…', 'ok');
+      setTimeout(() => window.location.href = data.url, 1600);
+    }
+  } catch {
+    await new Promise(r => setTimeout(r, 500));
+    removeTyping();
+    const m = text.toLowerCase();
+    let r = "I'm here to help with your workplace needs. Could you tell me more?";
+    if (/\b(hi|hello|hey)\b/.test(m)) r = "Hello! I'm CorpAssist. How can I help you today?";
+    else if (/password|reset/.test(m)) r = "For password resets, contact IT Support at ext. 4400.";
+    else if (/report|finance/.test(m)) r = "Financial reports are available under Reports > Quarterly.";
+    else if (/meeting|calendar/.test(m)) r = "Check CorpCal from your dashboard menu for scheduling.";
+    addMsg(r, 'bot');
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Mirror v3 — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070b10;--s1:#0c1420;--s2:#111d2e;--s3:#16253a;
+  --border:#142031;--border2:#1d3050;
+  --txt:#a0b0c8;--txt2:#6a7f99;--txt3:#344d68;
+  --bright:#dce8f8;--cyan:#7dd3fc;--green:#22c55e;--red:#ef4444;
+  --amber:#f59e0b;--purple:#a855f7;--orange:#f97316;
+  --blue:#3b82f6;--blue-dim:#1e3a5f;
+  --green-dim:#052e16;--red-dim:#450a0a;--amber-dim:#422006;
+  --purple-dim:#2e1065;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes fadein{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse-ring{0%{transform:scale(1);opacity:.7}100%{transform:scale(2.2);opacity:0}}
+
+html{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--txt);min-height:100vh}
+body{display:flex;min-height:100vh}
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:var(--s1)}
+::-webkit-scrollbar-thumb{background:#1d3050;border-radius:2px}
+a{text-decoration:none;color:inherit}
+
+/* ─── SIDEBAR ────────────────────────────────── */
+.sidebar{width:210px;background:#09101a;border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow:hidden}
+.sb-brand{padding:16px 16px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.sb-icon{width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0}
+.sb-title{font-size:12.5px;font-weight:700;color:var(--bright);letter-spacing:.06em;line-height:1.2}
+.sb-sub{font-size:9px;color:var(--txt3);letter-spacing:.08em}
+
+.conn{margin:10px 10px 6px;border-radius:7px;padding:8px 10px;display:flex;align-items:center;gap:8px;border:1px solid}
+.conn.live{background:var(--green-dim);border-color:#166534}
+.conn.err{background:var(--red-dim);border-color:#7f1d1d}
+.conn.wait{background:var(--s1);border-color:var(--border2)}
+.conn-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;animation:blink 1.5s ease-in-out infinite}
+.conn-status{font-size:10px;font-weight:700}
+.conn-url{font-size:9px;color:var(--txt3);margin-top:1px}
+
+.nav-section{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--txt3);padding:10px 14px 3px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 12px;margin:1px 7px;border-radius:6px;font-size:12px;font-weight:500;color:var(--txt2);cursor:pointer;border-left:2px solid transparent;transition:.15s;user-select:none}
+.nav-item:hover{background:rgba(59,130,246,.07);color:var(--bright)}
+.nav-item.on{background:rgba(59,130,246,.13);color:#93c5fd;border-left-color:var(--blue)}
+.nav-item svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;flex-shrink:0}
+.nav-badge{margin-left:auto;border-radius:8px;padding:1px 6px;font-size:9px;font-weight:800}
+
+.sb-footer{margin-top:auto;padding:10px;border-top:1px solid var(--border)}
+.refresh-row{display:flex;gap:4px;margin-top:7px}
+.rf-btn{flex:1;padding:5px 0;background:var(--s1);border:1px solid var(--border2);color:var(--txt2);font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;border-radius:5px;transition:.15s;text-align:center}
+.rf-btn:hover{background:var(--border2);color:var(--bright)}
+.rf-btn.on{background:var(--blue-dim);color:#93c5fd;border-color:#2d5a8a}
+.rf-label{font-size:9px;color:var(--txt3);text-transform:uppercase;letter-spacing:.1em}
+.last-refresh{font-size:9px;color:var(--txt3);margin-top:6px;font-family:monospace}
+
+/* ─── MAIN ───────────────────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow-x:hidden}
+.topbar{background:#09101a;border-bottom:1px solid var(--border);padding:0 20px;height:48px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50}
+.tb-title{font-size:12px;font-weight:700;color:var(--bright);flex:1;letter-spacing:.07em;text-transform:uppercase}
+.live-dot{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);font-weight:700}
+.live-dot::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 1.5s ease-in-out infinite}
+.tb-btn{background:var(--s1);border:1px solid var(--border2);color:var(--txt2);padding:6px 12px;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;border-radius:5px;letter-spacing:.05em;transition:.15s;display:flex;align-items:center;gap:5px}
+.tb-btn:hover{background:var(--border2);color:var(--bright)}
+.tb-btn svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2}
+
+.content{padding:18px;flex:1;animation:fadein .2s ease}
+
+/* ─── STAT GRID ──────────────────────────────── */
+.stat-grid{display:grid;gap:1px;background:var(--border);border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:16px}
+.stat-cell{background:var(--s1);padding:16px 18px}
+.stat-n{font-family:'Syne',sans-serif;font-weight:800;font-size:28px;line-height:1;letter-spacing:-.04em;margin-bottom:5px}
+.stat-l{font-size:9px;color:var(--txt3);text-transform:uppercase;letter-spacing:.09em}
+
+/* ─── OTP PANEL ──────────────────────────────── */
+.otp-panel{background:var(--s1);border:1px solid var(--amber-dim);border-radius:10px;overflow:hidden;margin-bottom:14px}
+.otp-hdr{padding:11px 16px;border-bottom:1px solid var(--amber-dim);font-size:10px;font-weight:700;color:var(--amber);letter-spacing:.07em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.otp-hdr .dot{width:7px;height:7px;border-radius:50%;background:var(--amber);animation:blink 1s ease-in-out infinite;flex-shrink:0}
+.otp-row{display:grid;grid-template-columns:140px 110px 1fr 110px;gap:12px;padding:14px 16px;border-bottom:1px solid #0a1520;align-items:center}
+.otp-row:last-child{border-bottom:none}
+.otp-ip{font-family:monospace;color:var(--cyan);font-size:11.5px}
+.otp-code{font-family:monospace;font-size:24px;font-weight:800;color:var(--amber);letter-spacing:.2em}
+.otp-code.used{color:var(--green);font-size:18px}
+.otp-code.expired{color:var(--red);text-decoration:line-through;font-size:18px}
+.timer-wrap{display:flex;align-items:center;gap:8px}
+.timer-num{font-family:monospace;font-weight:800;font-size:18px;min-width:46px}
+.timer-bar{flex:1;height:4px;background:var(--border2);border-radius:2px;overflow:hidden}
+.timer-fill{height:100%;border-radius:2px;transition:width 1s linear,background .5s}
+.otp-tag{text-align:right;font-size:10px}
+/* Generate OTP box */
+.gen-box{background:var(--s1);border:1px solid var(--border2);border-radius:10px;padding:16px;margin-bottom:14px}
+.gen-box-title{font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.gen-form{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.gen-input{background:var(--s2);border:1px solid var(--border2);color:var(--bright);padding:8px 12px;border-radius:6px;font-family:inherit;font-size:11.5px;outline:none;transition:.2s;flex:1;min-width:160px}
+.gen-input:focus{border-color:var(--blue)}
+.gen-btn{background:var(--blue-dim);color:#93c5fd;border:1px solid #2d5a8a;padding:8px 16px;border-radius:6px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:.15s;white-space:nowrap}
+.gen-btn:hover{background:#1d4ed8;color:#fff}
+.gen-result{background:#052240;border:1px solid var(--blue);border-radius:8px;padding:14px 16px;margin-top:12px}
+.gen-code-label{font-size:9px;color:var(--txt3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.gen-code{font-family:monospace;font-size:30px;font-weight:800;color:var(--amber);letter-spacing:.25em}
+.gen-note{font-size:10px;color:#4e7ba0;margin-top:8px}
+.gen-ttl{font-size:11px;color:var(--green);margin-top:4px;font-weight:700}
+
+/* ─── PANELS / TABLE ─────────────────────────── */
+.panel{background:var(--s1);border:1px solid var(--border2);border-radius:10px;overflow:hidden;margin-bottom:14px}
+.panel-hd{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.09em}
+.panel-hd span{font-weight:400;font-size:9px;color:var(--txt3)}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{padding:9px 13px;text-align:left;color:var(--txt3);font-size:9px;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);background:var(--bg)}
+td{padding:9px 13px;color:var(--txt);border-bottom:1px solid #0a1520}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.015)}
+.ip{font-family:monospace;color:var(--cyan);font-size:11px}
+.score-wrap{display:flex;align-items:center;gap:7px}
+.score-bar{width:56px;height:4px;background:var(--border2);border-radius:2px;overflow:hidden}
+.score-fill{height:100%;border-radius:2px}
+
+/* ─── BADGES ─────────────────────────────────── */
+.b-emp{background:#052e16;color:#4ade80;padding:1px 8px;border-radius:10px;font-size:9px;font-weight:700}
+.b-thr{background:#450a0a;color:#fca5a5;padding:1px 8px;border-radius:10px;font-size:9px;font-weight:700}
+.b-unk{background:#1e293b;color:#64748b;padding:1px 8px;border-radius:10px;font-size:9px;font-weight:700}
+.b-ban{background:#2e1065;color:#d8b4fe;padding:1px 8px;border-radius:10px;font-size:9px;font-weight:700}
+.tl-NONE{color:#22c55e}.tl-LOW{color:#eab308}.tl-MEDIUM{color:#f97316}.tl-HIGH{color:#ef4444}.tl-CRITICAL{color:#a855f7;font-weight:700}
+
+/* ─── LOGS ───────────────────────────────────── */
+.log-line{font-size:10.5px;padding:5px 14px;border-bottom:1px solid #0a1520;display:flex;gap:8px;font-family:monospace;line-height:1.7}
+.log-ts{color:var(--txt3);min-width:72px;flex-shrink:0}
+.log-ev{font-weight:700;min-width:200px;flex-shrink:0}
+
+/* ─── BAN ALERT ──────────────────────────────── */
+.ban-alert{background:#160b2e;border:1px solid #4c1d95;border-radius:8px;padding:11px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;font-size:11px}
+.ban-ip{font-family:monospace;color:#c4b5fd;font-weight:700}
+.ban-reason{color:#a78bfa}
+.ban-ts{margin-left:auto;font-family:monospace;font-size:10px;color:#4c1d95}
+
+/* ─── FILTER ─────────────────────────────────── */
+.filter-row{display:flex;gap:6px;margin-bottom:12px;align-items:center;flex-wrap:wrap}
+.filter-input{background:var(--s1);border:1px solid var(--border2);color:var(--bright);padding:7px 12px;border-radius:6px;font-family:inherit;font-size:11px;outline:none;transition:.2s;flex:1;min-width:160px}
+.filter-input:focus{border-color:var(--blue)}
+.f-tab{background:var(--s1);border:1px solid var(--border2);color:var(--txt2);padding:6px 13px;font-family:inherit;font-size:10px;font-weight:600;cursor:pointer;border-radius:5px;letter-spacing:.05em;transition:.15s}
+.f-tab:hover{background:var(--border2);color:var(--bright)}
+.f-tab.on{background:var(--blue-dim);color:#93c5fd;border-color:#2d5a8a}
+
+/* ─── DIST BARS ──────────────────────────────── */
+.dist-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.dist-lbl{font-size:9px;font-weight:700;min-width:64px;text-transform:uppercase;letter-spacing:.04em}
+.dist-bar{flex:1;height:5px;background:var(--border2);border-radius:3px;overflow:hidden}
+.dist-fill{height:100%;border-radius:3px;transition:width .5s}
+.dist-n{font-size:10px;color:var(--txt3);min-width:22px;text-align:right;font-family:monospace}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-icon">◈</div>
+    <div><div class="sb-title">DIGITAL MIRROR</div><div class="sb-sub">v3 ADMIN PANEL</div></div>
+  </div>
+
+  <div class="conn wait" id="conn-chip">
+    <div class="conn-dot" id="conn-dot" style="background:#64748b"></div>
+    <div>
+      <div class="conn-status" id="conn-status" style="color:#64748b">CONNECTING</div>
+      <div class="conn-url">127.0.0.1:8000</div>
+    </div>
+  </div>
+
+  <div class="nav-section">Surveillance</div>
+  <div class="nav-item on" id="nav-dash" onclick="setTab('dash')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</div>
+  <div class="nav-item" id="nav-otp" onclick="setTab('otp')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>OTP Monitor<span id="nb-otp" class="nav-badge" style="background:#f59e0b;color:#000;display:none"></span></div>
+  <div class="nav-item" id="nav-sessions" onclick="setTab('sessions')"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Sessions<span id="nb-ban" class="nav-badge" style="background:#7c3aed;color:#ddd6fe;display:none"></span></div>
+  <div class="nav-item" id="nav-logs" onclick="setTab('logs')"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Event Logs</div>
+
+  <div class="nav-section">Actions</div>
+  <div class="nav-item" id="nav-gen" onclick="setTab('gen')"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Generate OTP</div>
+  <div class="nav-item" id="nav-config" onclick="setTab('config')"><svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Config</div>
+
+  <div class="sb-footer">
+    <div class="rf-label">Auto-Refresh</div>
+    <div class="refresh-row">
+      <div class="rf-btn on" id="rf5" onclick="setRefresh(5)">5s</div>
+      <div class="rf-btn" id="rf10" onclick="setRefresh(10)">10s</div>
+      <div class="rf-btn" id="rf30" onclick="setRefresh(30)">30s</div>
+    </div>
+    <div class="last-refresh" id="last-refresh">—</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="tb-title" id="tb-title">Dashboard</div>
+    <div class="live-dot">SURVEILLANCE ACTIVE</div>
+    <button class="tb-btn" onclick="fetchAll()"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Refresh</button>
+  </div>
+  <div class="content" id="tab-content"></div>
+</div>
+
+<script>
+const API = 'http://127.0.0.1:8000';
+const AUTH = 'Basic ' + btoa('sysadmin:Str0ngAdm1nP@ss!');
+const OTP_TTL = 300;
+
+let state = { tab: 'dash', sessions: [], otps: [], stats: null, connected: null, refreshSecs: 5, lastRefresh: null, ticker: 0, sesFilter: 'ALL' };
+let rfTimer = null, tickTimer = null;
+
+/* ─── API ─────────────────────────────────────── */
+async function apiFetch(path) {
+  const r = await fetch(API + path, { headers: { Authorization: AUTH } });
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+async function apiPost(path, body) {
+  const r = await fetch(API + path, {
+    method: 'POST', headers: { Authorization: AUTH, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+
+/* ─── fetch ───────────────────────────────────── */
+async function fetchAll() {
+  try {
+    const [sess, otps, stats] = await Promise.all([
+      apiFetch('/sysadmin/sessions'),
+      apiFetch('/sysadmin/api/otp-status'),
+      apiFetch('/sysadmin/api/stats'),
+    ]);
+    state.sessions = sess; state.otps = otps; state.stats = stats;
+    state.connected = true; state.lastRefresh = Date.now();
+    setConn(true);
+  } catch { state.connected = false; setConn(false); }
+  render(); updateBadges();
+  document.getElementById('last-refresh').textContent = state.lastRefresh ? new Date(state.lastRefresh).toTimeString().slice(0, 8) : '—';
+}
+
+function setConn(ok) {
+  const chip = document.getElementById('conn-chip');
+  const dot = document.getElementById('conn-dot');
+  const status = document.getElementById('conn-status');
+  chip.className = 'conn ' + (ok ? 'live' : 'err');
+  dot.style.background = ok ? '#22c55e' : '#ef4444';
+  status.style.color = ok ? '#4ade80' : '#fca5a5';
+  status.textContent = ok ? 'LIVE' : 'OFFLINE';
+}
+function updateBadges() {
+  const activeOtps = state.otps.filter(o => !o.expired && !o.used);
+  const banned = state.sessions.filter(s => s.is_banned);
+  const nb1 = document.getElementById('nb-otp');
+  nb1.textContent = activeOtps.length; nb1.style.display = activeOtps.length ? '' : 'none';
+  const nb2 = document.getElementById('nb-ban');
+  nb2.textContent = banned.length; nb2.style.display = banned.length ? '' : 'none';
+}
+
+/* ─── refresh & tick ──────────────────────────── */
+function setRefresh(s) {
+  state.refreshSecs = s;
+  [5,10,30].forEach(v => document.getElementById('rf'+v).className = 'rf-btn' + (v===s?' on':''));
+  clearInterval(rfTimer); rfTimer = setInterval(fetchAll, s * 1000);
+}
+
+/* ─── tab routing ─────────────────────────────── */
+function setTab(id) {
+  state.tab = id;
+  ['dash','otp','sessions','logs','gen','config'].forEach(t => {
+    document.getElementById('nav-'+t)?.classList.remove('on');
+  });
+  document.getElementById('nav-'+id)?.classList.add('on');
+  const titles = {dash:'Dashboard',otp:'OTP Monitor',sessions:'Sessions',logs:'Event Logs',gen:'Generate OTP',config:'Config'};
+  document.getElementById('tb-title').textContent = titles[id] || id;
+  render();
+}
+
+function render() {
+  const el = document.getElementById('tab-content');
+  const fn = {dash:renderDash,otp:renderOtp,sessions:renderSessions,logs:renderLogs,gen:renderGen,config:renderConfig}[state.tab];
+  if (fn) { el.innerHTML = ''; fn(el); }
+}
+
+/* ─── helpers ─────────────────────────────────── */
+function scoreBar(s) {
+  const pct = Math.min(100, s);
+  const c = s>=100?'#a855f7':s>=80?'#ef4444':s>=50?'#f97316':s>=20?'#eab308':'#22c55e';
+  return `<div class="score-wrap"><span style="color:${c};font-weight:700;min-width:28px;font-family:monospace">${s}</span><div class="score-bar"><div class="score-fill" style="width:${pct}%;background:${c}"></div></div></div>`;
+}
+function tl(level) {
+  return `<span class="tl-${level}">${level}</span>`;
+}
+function idBadge(s) {
+  const b = {EMPLOYEE:'b-emp',THREAT:'b-thr'}[s.identity]||'b-unk';
+  return `<span class="${b}">${s.identity}</span>${s.is_banned?'<span class="b-ban" style="margin-left:3px">BANNED</span>':''}`;
+}
+
+/* ─── OTP timer helpers ───────────────────────── */
+function liveSecsOf(o) {
+  if (o.expired || o.used) return 0;
+  const elapsed = state.lastRefresh ? (Date.now() - state.lastRefresh) / 1000 : 0;
+  return Math.max(0, o.seconds_remaining - elapsed);
+}
+function timerHTML(secs, expired) {
+  if (expired) return `<span style="color:#ef4444;font-weight:700;font-size:12px">EXPIRED</span>`;
+  const m = Math.floor(secs/60), s = Math.floor(secs%60);
+  const c = secs<=60?'#ef4444':secs<=120?'#f59e0b':'#22c55e';
+  const pct = (secs/OTP_TTL)*100;
+  return `<div class="timer-wrap">
+    <span class="timer-num" style="color:${c}">${m}:${String(s).padStart(2,'0')}</span>
+    <div class="timer-bar"><div class="timer-fill" style="width:${pct.toFixed(1)}%;background:${c}"></div></div>
+  </div>`;
+}
+
+/* ─── DASHBOARD TAB ──────────────────────────── */
+function renderDash(el) {
+  const ss = state.sessions, st = state.stats;
+  if (!state.connected) {
+    el.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--txt3)">
+      <div style="font-size:48px;margin-bottom:16px">⚡</div>
+      <div style="font-size:14px;font-weight:700;color:var(--txt2);margin-bottom:8px">Backend Offline</div>
+      <div style="font-size:11px;margin-bottom:16px">Start Digital Mirror v3 → python main.py</div>
+      <code style="font-size:10px;background:var(--s1);border:1px solid var(--border);padding:10px 16px;border-radius:6px;color:var(--cyan);display:inline-block">python main.py</code>
+    </div>`; return;
+  }
+  const emp = ss.filter(s=>s.identity==='EMPLOYEE').length;
+  const thr = ss.filter(s=>s.identity==='THREAT').length;
+  const ban = ss.filter(s=>s.is_banned).length;
+  const crit = ss.filter(s=>s.threat_level==='CRITICAL').length;
+  const aOtp = state.otps.filter(o=>!o.expired&&!o.used);
+
+  const stats = [
+    {l:'Total Sessions',v:ss.length,c:'#dce8f8'},
+    {l:'Employees',v:emp,c:'#4ade80'},{l:'Threats',v:thr,c:'#f87171'},
+    {l:'Banned IPs',v:ban,c:'#c084fc'},{l:'Active OTPs',v:aOtp.length,c:'#fbbf24'},
+    {l:'Critical',v:crit,c:'#ef4444'},
+  ];
+  const levels = ['CRITICAL','HIGH','MEDIUM','LOW','NONE'];
+  const tColors = {CRITICAL:'#a855f7',HIGH:'#ef4444',MEDIUM:'#f97316',LOW:'#eab308',NONE:'#22c55e'};
+  const maxN = Math.max(...levels.map(l=>ss.filter(s=>s.threat_level===l).length),1);
+  const topThreats = [...ss].filter(s=>s.identity!=='EMPLOYEE').sort((a,b)=>b.risk_score-a.risk_score).slice(0,6);
+
+  let otpAlert = '';
+  if (aOtp.length) {
+    otpAlert = `<div class="otp-panel" style="border-color:#92400e">
+      <div class="otp-hdr"><div class="dot"></div>${aOtp.length} ACTIVE OTP SESSION${aOtp.length>1?'S':''} — employee must enter code in chatbot within 5 min</div>
+      ${aOtp.map(o=>`<div class="otp-row">
+        <div class="otp-ip">${o.ip}<br><span style="color:var(--txt3);font-size:9px">${o.emp_id||'—'}</span></div>
+        <div class="otp-code">${o.code}</div>
+        <div>${timerHTML(liveSecsOf(o),false)}</div>
+        <div class="otp-tag" style="color:var(--amber)">⌛ Awaiting chatbot</div>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  el.innerHTML = `
+    <div class="stat-grid" style="grid-template-columns:repeat(6,1fr)">
+      ${stats.map(s=>`<div class="stat-cell"><div class="stat-n" style="color:${s.c}">${s.v}</div><div class="stat-l">${s.l}</div></div>`).join('')}
+    </div>
+    ${otpAlert}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="panel">
+        <div class="panel-hd">Threat Distribution</div>
+        <div style="padding:14px 16px">
+          ${levels.map(l=>{const n=ss.filter(s=>s.threat_level===l).length;return`<div class="dist-row"><span class="dist-lbl" style="color:${tColors[l]}">${l}</span><div class="dist-bar"><div class="dist-fill" style="width:${n?Math.max(4,(n/maxN)*100):0}%;background:${tColors[l]}"></div></div><span class="dist-n">${n}</span></div>`}).join('')}
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-hd">Top Threat IPs <span>by risk score</span></div>
+        ${topThreats.length===0?`<div style="padding:20px;text-align:center;color:var(--txt3);font-size:11px">No threats</div>`:`
+        <table><thead><tr><th>IP</th><th>Level</th><th>Score</th></tr></thead><tbody>
+        ${topThreats.map(s=>`<tr><td class="ip">${s.ip}</td><td>${tl(s.threat_level)}</td><td>${scoreBar(s.risk_score)}</td></tr>`).join('')}
+        </tbody></table>`}
+      </div>
+    </div>`;
+}
+
+/* ─── OTP MONITOR TAB ────────────────────────── */
+function renderOtp(el) {
+  const active = state.otps.filter(o=>!o.expired&&!o.used);
+  const expired = state.otps.filter(o=>o.expired);
+  const used = state.otps.filter(o=>o.used);
+
+  if (!state.otps.length) {
+    el.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--txt3)">
+      <div style="font-size:40px;margin-bottom:12px">🔐</div>
+      <div style="font-size:13px">No OTP sessions yet</div>
+      <div style="font-size:11px;margin-top:4px">Sessions appear when users log into the honeypot</div>
+    </div>`; return;
+  }
+  const labelRow = (l) => `<div style="font-size:9px;color:var(--txt3);margin-bottom:3px;text-transform:uppercase;letter-spacing:.06em">${l}</div>`;
+  let html = '';
+  if (active.length) {
+    html += `<div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);margin-bottom:8px;display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:var(--amber);animation:blink 1s ease-in-out infinite;display:inline-block;flex-shrink:0"></span>ACTIVE — ${active.length} session${active.length>1?'s':''} waiting</div>
+    <div class="otp-panel" style="border-color:#92400e;margin-bottom:14px">
+    ${active.map((o,i)=>`<div class="otp-row" style="border-bottom:${i<active.length-1?'1px solid #0a1520':'none'}">
+      <div>${labelRow('IP Address')}<span class="otp-ip">${o.ip}</span><br><span style="font-size:9px;color:var(--txt3)">${o.emp_id||'—'}</span></div>
+      <div>${labelRow('OTP Code')}<span class="otp-code">${o.code}</span></div>
+      <div>${labelRow('Time Remaining')}${timerHTML(liveSecsOf(o),false)}</div>
+      <div class="otp-tag">${labelRow('Status')}<span style="color:var(--amber);font-size:10px">⌛ Awaiting chatbot</span></div>
+    </div>`).join('')}</div>`;
+  }
+  if (expired.length) {
+    html += `<div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin-bottom:8px">🚫 EXPIRED / AUTO-BANNED — ${expired.length}</div>
+    <div class="panel" style="border-color:#7f1d1d;margin-bottom:14px">
+    ${expired.map((o,i)=>`<div class="otp-row" style="border-bottom:${i<expired.length-1?'1px solid #0a1520':'none'};opacity:.75">
+      <span class="otp-ip">${o.ip}</span>
+      <span class="otp-code expired">${o.code}</span>
+      <span style="color:var(--red);font-size:11px;font-weight:700">EXPIRED</span>
+      <span class="otp-tag" style="color:#7f1d1d;font-size:10px">🚫 Auto-banned</span>
+    </div>`).join('')}</div>`;
+  }
+  if (used.length) {
+    html += `<div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:8px">✓ VERIFIED — ${used.length}</div>
+    <div class="panel" style="border-color:#166534">
+    ${used.map((o,i)=>`<div class="otp-row" style="border-bottom:${i<used.length-1?'1px solid #0a1520':'none'}">
+      <span class="otp-ip">${o.ip}</span>
+      <span class="otp-code used">${o.code}</span>
+      <span style="color:var(--green);font-size:11px">OTP verified · redirected</span>
+      <span class="otp-tag" style="color:var(--green)">✓ Employee</span>
+    </div>`).join('')}</div>`;
+  }
+  el.innerHTML = html;
+}
+
+/* ─── SESSIONS TAB ───────────────────────────── */
+function renderSessions(el) {
+  const filters = ['ALL','EMPLOYEE','THREAT','UNKNOWN','BANNED'];
+  const f = state.sesFilter;
+  const filtered = state.sessions
+    .filter(s => f==='ALL'?true:f==='BANNED'?s.is_banned:s.identity===f)
+    .sort((a,b)=>b.risk_score-a.risk_score);
+  window._sf = (v) => { state.sesFilter=v; render(); };
+  el.innerHTML = `
+    <div class="filter-row">
+      ${filters.map(v=>`<button class="f-tab${v===f?' on':''}" onclick="_sf('${v}')">${v} <span style="opacity:.5">${v==='ALL'?state.sessions.length:v==='BANNED'?state.sessions.filter(s=>s.is_banned).length:state.sessions.filter(s=>s.identity===v).length}</span></button>`).join('')}
+      <span style="margin-left:auto;font-size:9px;color:var(--txt3);align-self:center">${filtered.length} sessions</span>
+    </div>
+    <div class="panel">
+      <div class="panel-hd">Sessions <span>sorted by risk score</span></div>
+      ${filtered.length===0?`<div style="padding:24px;text-align:center;color:var(--txt3);font-size:11px">No sessions</div>`:`
+      <table><thead><tr><th>IP</th><th>Identity</th><th>Threat</th><th>Risk Score</th><th>Last Action</th><th>Last Seen</th><th>OTP ✗</th><th>2FA ✗</th></tr></thead>
+      <tbody>${filtered.map(s=>`<tr>
+        <td class="ip">${s.ip}</td>
+        <td>${idBadge(s)}</td>
+        <td>${tl(s.threat_level)}</td>
+        <td>${scoreBar(s.risk_score)}</td>
+        <td style="color:var(--txt2);font-size:10px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.last_action}</td>
+        <td style="font-family:monospace;color:var(--txt3);font-size:10px">${new Date(s.last_seen).toTimeString().slice(0,8)}</td>
+        <td style="text-align:center;color:${s.otp_failures>0?'#f87171':'var(--txt3)'}">${s.otp_failures}</td>
+        <td style="text-align:center;color:${s.fa2_failures>0?'#f87171':'var(--txt3)'}">${s.fa2_failures}</td>
+      </tr>`).join('')}</tbody></table>`}
+    </div>`;
+}
+
+/* ─── LOGS TAB ───────────────────────────────── */
+function renderLogs(el) {
+  const evColors = {LOGIN_TO_HONEYPOT:'#f87171',FAILED_LOGIN:'#f87171',CHATBOT_OTP_SUCCESS:'#4ade80',AUTO_BAN:'#c084fc',DECOY_PAGE_ACCESS:'#fb923c',DECOY_ADMIN_ACCESS:'#fb923c',CHATBOT_OTP_FAILURE:'#fbbf24',BANNED_REQUEST:'#a855f7',HONEYPOT_DASHBOARD_VIEW:'#60a5fa'};
+  const events = state.sessions.flatMap(s=>s.last_action?[{ts:s.last_seen,ev:s.last_action,ip:s.ip,identity:s.identity,threat_level:s.threat_level,score:s.risk_score}]:[]).sort((a,b)=>new Date(b.ts)-new Date(a.ts));
+  el.innerHTML = `
+    <div class="panel">
+      <div class="panel-hd">Event Log <span>from session API · ${events.length} events</span></div>
+      <div style="max-height:520px;overflow-y:auto">
+        ${events.length===0?`<div class="log-line" style="justify-content:center;color:var(--txt3)">No events yet</div>`:
+        events.slice(0,100).map(e=>`<div class="log-line">
+          <span class="log-ts">${new Date(e.ts).toTimeString().slice(0,8)}</span>
+          <span class="log-ev" style="color:${evColors[e.ev]||'#64748b'}">${e.ev}</span>
+          <span style="color:var(--cyan);min-width:100px;flex-shrink:0">${e.ip}</span>
+          <span style="color:var(--txt3)">[${e.identity}|${e.threat_level}] score:${e.score}</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+/* ─── GENERATE OTP TAB ───────────────────────── */
+function renderGen(el) {
+  el.innerHTML = `
+    <div class="gen-box">
+      <div class="gen-box-title">Generate OTP for Employee</div>
+      <div style="font-size:10px;color:var(--txt2);margin-bottom:12px">
+        Enter the employee's username (e.g. <span style="color:var(--cyan)">j.smith</span>) or employee ID. The OTP will be valid for 5 minutes.
+        Deliver it to the employee out-of-band — they must type it into the AI chatbot on the honeypot dashboard.
+      </div>
+      <div class="gen-form">
+        <input class="gen-input" id="gen-target" type="text" placeholder="j.smith  or  EMP_88412" autocomplete="off">
+        <button class="gen-btn" onclick="generateOtp()">Generate OTP →</button>
+      </div>
+      <div id="gen-result" style="display:none" class="gen-result">
+        <div class="gen-code-label">OTP Code — share with employee only</div>
+        <div class="gen-code" id="gen-code">——</div>
+        <div class="gen-note" id="gen-note">Valid for 5 minutes. Employee must type this in the AI chatbot on the honeypot dashboard.</div>
+        <div class="gen-ttl" id="gen-ttl-label">⏱ 5:00 remaining</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-hd">Active OTP Sessions <span>auto-refreshing</span></div>
+      ${state.otps.filter(o=>!o.expired&&!o.used).length===0
+        ?`<div style="padding:20px;text-align:center;color:var(--txt3);font-size:11px">No active OTPs</div>`
+        :`<div>${state.otps.filter(o=>!o.expired&&!o.used).map(o=>`
+          <div class="otp-row">
+            <div class="otp-ip">${o.ip}<br><span style="color:var(--txt3);font-size:9px">${o.emp_id||'—'}</span></div>
+            <div class="otp-code" style="font-size:20px">${o.code}</div>
+            <div>${timerHTML(liveSecsOf(o),false)}</div>
+            <div class="otp-tag" style="color:var(--amber);font-size:10px">⌛ Waiting</div>
+          </div>`).join('')}
+        </div>`
+      }
+    </div>`;
+  document.getElementById('gen-target').addEventListener('keydown', e => { if (e.key==='Enter') generateOtp(); });
+}
+
+let _genTimer = null;
+async function generateOtp() {
+  const target = document.getElementById('gen-target').value.trim();
+  if (!target) { alert('Enter an employee username or ID'); return; }
+  try {
+    const data = await apiPost('/sysadmin/api/generate-otp', { username: target });
+    document.getElementById('gen-code').textContent = data.code;
+    document.getElementById('gen-result').style.display = '';
+    clearInterval(_genTimer);
+    let secs = data.ttl || 300;
+    const label = document.getElementById('gen-ttl-label');
+    const tick = () => { const m=Math.floor(secs/60),s=secs%60; label.textContent = `⏱ ${m}:${String(s).padStart(2,'0')} remaining`; if(secs<=0){clearInterval(_genTimer);label.textContent='⏰ Expired';label.style.color='#ef4444';} secs--; };
+    tick(); _genTimer = setInterval(tick, 1000);
+  } catch (e) { alert('Failed to generate OTP. Is the backend running?\n\n' + e.message); }
+}
+
+/* ─── CONFIG TAB ─────────────────────────────── */
+function renderConfig(el) {
+  const risk = [
+    {a:'FAILED_LOGIN',p:15,t:'POST /authenticate without valid credential'},
+    {a:'ACCESS_SENSITIVE_DIR',p:60,t:'GET /admin, /admin/*'},
+    {a:'FAILED_2FA',p:35,t:'Wrong TOTP from known employee'},
+    {a:'FAILED_OTP',p:10,t:'Wrong OTP in chatbot'},
+    {a:'BRUTE_FORCE',p:50,t:'Auto-applied on OTP timeout'},
+    {a:'SQL_INJECTION',p:80,t:'Manual via bridge.track_action()'},
+    {a:'XSS_ATTEMPT',p:70,t:'Manual or auto-detected'},
+  ];
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+      <div class="panel">
+        <div class="panel-hd">Connection Info</div>
+        <div style="padding:14px 16px">
+          ${[['Backend URL',API],['Admin User','sysadmin'],['OTP TTL','300s (5 min)'],['Ban Threshold','100 pts'],['Ban Duration','1 hour'],['Watcher Interval','10s']].map(([k,v])=>`
+            <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #0a1520;font-size:11px">
+              <span style="color:var(--txt2)">${k}</span>
+              <span style="font-family:monospace;color:var(--cyan)">${v}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-hd">Auth Flow</div>
+        <div style="padding:14px 16px">
+          ${[['1. User logs in','#60a5fa','Same login for everyone'],['2. OTP generated','#fbbf24','Visible only in this panel'],['3. Employee opens chatbot','#a78bfa','Bottom-right corner'],['4. Employee types OTP','#4ade80','Within 5 minutes'],['5a. Correct OTP','#4ade80','→ Redirected to real system'],['5b. Timer expires','#ef4444','→ Auto-banned']].map(([s,c,d])=>`
+            <div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid #0a1520;font-size:10.5px">
+              <span style="color:${c};font-weight:600;min-width:140px">${s}</span>
+              <span style="color:var(--txt3)">${d}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-hd">Risk Score Table <span>ban at 100 pts</span></div>
+      <table><thead><tr><th>Action</th><th>Points</th><th>Trigger</th></tr></thead><tbody>
+      ${risk.map(r=>`<tr>
+        <td style="font-family:monospace;color:#fbbf24;font-size:10px">${r.a}</td>
+        <td><span style="color:${r.p>=70?'#ef4444':r.p>=40?'#f97316':'#eab308'};font-weight:700;font-family:monospace">+${r.p}</span></td>
+        <td style="color:var(--txt2);font-size:10px">${r.t}</td>
+      </tr>`).join('')}
+      </tbody></table>
+    </div>`;
+}
+
+/* ─── INIT ───────────────────────────────────── */
+fetchAll();
+rfTimer = setInterval(fetchAll, state.refreshSecs * 1000);
+tickTimer = setInterval(() => { state.ticker++; if (['dash','otp','gen'].includes(state.tab)) render(); }, 1000);
+render();
+</script>
+</body>
+</html>

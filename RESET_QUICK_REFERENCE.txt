@@ -1,0 +1,132 @@
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                     🔄 RESET BUTTON — QUICK REFERENCE                       ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+┌─ LOCATION ─────────────────────────────────────────────────────────────────┐
+│ Admin Dashboard: http://127.0.0.1:8000/sysadmin/dashboard                   │
+│ Button Position: TOP-RIGHT CORNER (orange color)                           │
+│ Text: 🔄 RESET                                                              │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌─ QUICK START ──────────────────────────────────────────────────────────────┐
+│ 1. Go to admin dashboard                                                   │
+│ 2. Login: sysadmin / Str0ngAdm1nP@ss!                                      │
+│ 3. Click 🔄 RESET button (top-right)                                       │
+│ 4. Confirm: Click OK in dialog                                             │
+│ 5. Done! Sessions cleared, page refreshes automatically                    │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌─ WHAT IT DOES ─────────────────────────────────────────────────────────────┐
+│ ✓ Clears all tracked IP sessions                                           │
+│ ✓ Resets all risk scores to 0                                              │
+│ ✓ Removes all threat levels and bans                                       │
+│ ✓ Clears failure counters (OTP, 2FA)                                       │
+│ ✓ Logs the reset action in event logs                                      │
+│ ✓ Auto-refreshes page to show fresh data                                   │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌─ BUTTON STATES ────────────────────────────────────────────────────────────┐
+│                                                                              │
+│ NORMAL:     [🔄 RESET]         Orange border, transparent bg               │
+│ HOVER:      [🔄 RESET]✨        Orange bg, white text, glow effect         │
+│ LOADING:    [⏳ Resetting...]  Disabled, grayed out                        │
+│ SUCCESS:    ✅ Alert pops up → Page refreshes → Button returns to normal   │
+│                                                                              │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌─ TIME COMPARISON ──────────────────────────────────────────────────────────┐
+│                                                                              │
+│ OLD METHOD:                          NEW METHOD:                            │
+│ 1. Stop server (Ctrl+C)            1. Click button (1 sec)                 │
+│ 2. Run reset script (2 sec)        2. Confirm (0.5 sec)                    │
+│ 3. Restart server (3 sec)          3. DONE! Page auto-refreshes            │
+│ ─────────────────                                                          │
+│ Total: 5-10 seconds ❌             Total: <2 seconds ✅                     │
+│                                                                              │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌─ WORKFLOW EXAMPLE ─────────────────────────────────────────────────────────┐
+│                                                                              │
+│ SCENARIO: Test invalid login, then try valid one                           │
+│                                                                              │
+│ Step 1: Try invalid login                                                  │
+│   Username: baduser                                                        │
+│   Password: badpass                                                        │
+│   Result: ⚠️ THREAT DETECTED - IP marked as threat                         │
+│                                                                              │
+│ Step 2: Try valid login                                                    │
+│   Username: admin                                                          │
+│   Password: anything                                                       │
+│   Result: ❌ Still blocked! (threat status remembered)                     │
+│                                                                              │
+│ Step 3: Reset in admin panel                                               │
+│   - Go to admin dashboard                                                  │
+│   - Click 🔄 RESET                                                          │
+│   - Confirm: OK                                                            │
+│   - Result: ✅ Success! Reset 1 tracked sessions                           │
+│                                                                              │
+│ Step 4: Try valid login again                                              │
+│   Username: admin                                                          │
+│   Password: anything                                                       │
+│   Result: ✅ ACCEPTED! OTP generated                                       │
+│                                                                              │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌─ API ENDPOINT ─────────────────────────────────────────────────────────────┐
+│                                                                              │
+│ POST /sysadmin/api/reset-sessions                                          │
+│                                                                              │
+│ Response:                                                                  │
+│ {                                                                          │
+│   "ok": true,                                                              │
+│   "message": "Reset 5 tracked sessions",                                   │
+│   "sessions_cleared": 5                                                    │
+│ }                                                                          │
+│                                                                              │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌─ TROUBLESHOOTING ──────────────────────────────────────────────────────────┐
+│ Problem: Button not visible                                                │
+│ → Make sure you're logged in as sysadmin                                   │
+│                                                                              │
+│ Problem: "Reset failed" message                                            │
+│ → Check browser console (F12) for error details                            │
+│ → Make sure server is still running                                        │
+│                                                                              │
+│ Problem: Page doesn't refresh                                              │
+│ → Try manual refresh (F5)                                                  │
+│ → Check if JavaScript is enabled in browser                                │
+│                                                                              │
+│ Problem: Button is grayed out                                              │
+│ → Wait for current reset to complete                                       │
+│ → Check if a reset is already in progress                                  │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌─ KEY FEATURES ─────────────────────────────────────────────────────────────┐
+│ ⚡ One-click operation                                                      │
+│ 🔒 Requires admin authentication                                           │
+│ ✅ Confirmation dialog (prevents accidents)                                │
+│ 📊 Visual feedback during processing                                       │
+│ 🔄 Auto page refresh on success                                            │
+│ 📝 Actions logged in event logs                                            │
+│ 🚀 No server restart needed                                                │
+│ 📱 Works on mobile devices                                                 │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌─ IMPORTANT NOTES ──────────────────────────────────────────────────────────┐
+│ • ONLY clears sessions - NOT permanent data                                │
+│ • Logs are PRESERVED (not deleted)                                         │
+│ • OTP history is PRESERVED (not cleared)                                   │
+│ • Action is LOGGED as SESSIONS_RESET event                                 │
+│ • Can only be done by sysadmin user                                        │
+│ • Confirmation required to prevent accidents                               │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌─ URLS YOU NEED ────────────────────────────────────────────────────────────┐
+│ Server:          http://127.0.0.1:8000                                     │
+│ Login:           http://127.0.0.1:8000/login                               │
+│ Admin Panel:     http://127.0.0.1:8000/sysadmin/dashboard                  │
+│ Reset Endpoint:  POST /sysadmin/api/reset-sessions                         │
+└────────────────────────────────────────────────────────────────────────────┘
+
+                         ✅ READY TO USE! 🎉
